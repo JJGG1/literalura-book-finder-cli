@@ -26,6 +26,10 @@ public class BookService {
     @Autowired
     private BookRepository bookRepository;
 
+    public List<Book> getTop10MostDownloadedBooks() {
+        return bookRepository.findTop10ByOrderByDownloadCountDesc();
+    }
+
     public List<Book> findAllBooksFullyLoaded() {
         return bookRepository.findAllWithAuthorsAndLanguages();
     }

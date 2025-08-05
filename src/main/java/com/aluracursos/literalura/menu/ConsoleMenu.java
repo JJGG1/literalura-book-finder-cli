@@ -47,6 +47,7 @@ public class ConsoleMenu {
             System.out.println("3. Listar autores de búsquedas registradas");
             System.out.println("4. Listar autores vivos en un período determinado");
             System.out.println("5. Listar libros por idioma");
+            System.out.println("6. Listar Top 10 libros mas descargados");
             System.out.println("0. Salir");
             System.out.print("Selecciona una opción: ");
 
@@ -63,9 +64,19 @@ public class ConsoleMenu {
                 case 3 -> showAllAuthors();
                 case 4 -> showBooksByAuthorsAliveInPeriod();
                 case 5 -> showBooksByLanguage();
+                case 6 -> showTop10MostDownloadedBooks();
                 case 0 -> System.out.println("👋 Saliendo de la aplicación.");
                 default -> System.out.println("❌ Opción no válida. Debes de ingresar un múmero de las opciones del menú");
             }
+        }
+    }
+
+    private void showTop10MostDownloadedBooks() {
+        List<Book> topBooks = bookService.getTop10MostDownloadedBooks();
+        System.out.println("📚 Los 10 libros más descargados:");
+
+        for (Book book : topBooks) {
+            System.out.printf("• %s (Descargas: %d)\n", book.getTitle(), book.getDownloadCount());
         }
     }
 
