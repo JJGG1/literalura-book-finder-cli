@@ -1,3 +1,9 @@
+![VERSIÓN](https://img.shields.io/badge/VERSIÓN-1.0.1-blue)
+![ESTADO](https://img.shields.io/badge/ESTADO-CONCLUIDO-brightgreen)
+![ÚLTIMA ACTUALIZACIÓN](https://img.shields.io/badge/ÚLTIMA%20ACTUALIZACIÓN-AGOSTO%202025-orange)
+![OFFLINE](https://img.shields.io/badge/ACCESO%20OFFLINE-SÍ-brightgreen)
+![ONLINE](https://img.shields.io/badge/ACCESO%20ONLINE-SÍ-brightgreen)
+
 # 📚 LiterAlura
 
 Literalura es una aplicación de consola desarrollada en Java que interactúa con la [API de Gutendex](https://gutendex.com/) para buscar, registrar y gestionar libros en una base de datos PostgreSQL. También permite filtrar y mostrar los libros y autores registrados.
