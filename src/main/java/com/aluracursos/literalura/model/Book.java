@@ -1,63 +1,107 @@
 package com.aluracursos.literalura.model;
 
-import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.persistence.*;
+import java.util.HashSet;
+import java.util.Set;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
+@Entity
+@Table(name = "books")
 public class Book {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;  // O usa @GeneratedValue si no tienes id externo
+
     private String title;
-    private Integer id;
 
-    @JsonAlias("authors")
-    private List<Author> authors;
-    private List<String> languages;
+    @JsonProperty("download_count")
+    @Column(name = "download_count")
+    private Integer downloadCount;
 
-    @JsonAlias("download_count")
-    private int downloadCount;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "book_author",
+            joinColumns = @JoinColumn(name = "book_id"),
+            inverseJoinColumns = @JoinColumn(name = "author_id")
+    )
+    private Set<Author> authors = new HashSet<>();
 
-    // Getters y Setters
-    public Integer getId(){
-        return id;
-    }
-    public String getTitle() {
-        return title;
-    }
 
-    public List<Author> getAuthors() {
-        return authors;
-    }
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "book_languages", joinColumns = @JoinColumn(name = "book_id"))
+    @Column(name = "language")
+    private Set<String> languages = new HashSet<>();
 
-    public List<String> getLanguages() {
+    // Getter y setter para languages
+    public Set<String> getLanguages() {
         return languages;
     }
 
-    public int getDownloadCount() {
-        return downloadCount;
+    public void setLanguages(Set<String> languages) {
+        this.languages = languages;
+    }
+
+
+    // Constructor vacío obligatorio
+    public Book() {}
+
+    // Getters y setters
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getTitle() {
+        return title;
     }
 
     public void setTitle(String title) {
         this.title = title;
     }
 
-    public void setAuthors(List<Author> authors) {
-        this.authors = authors;
+    public Integer getDownloadCount() {
+        return downloadCount;
     }
 
-    public void setLanguages(List<String> languages) {
-        this.languages = languages;
-    }
-
-    public void setDownloadCount(int downloadCount) {
+    public void setDownloadCount(Integer downloadCount) {
         this.downloadCount = downloadCount;
     }
 
-    @Override
-    public String toString() {
-        return "\n📘 Título: " + title +
-                "\n👤 Autor(es): " + authors +
-                "\n🌐 Idioma(s): " + languages +
-                "\n⬇️ Descargas: " + downloadCount + "\n";
+    public Set<Author> getAuthors() {
+        return authors;
+    }
+
+    public void setAuthors(Set<Author> authors) {
+        this.authors = authors;
+    }
+
+    // Método para mantener relación bidireccional
+    public void addAuthor(Author author) {
+        if (authors == null) {
+            authors = new HashSet<>();
+        }
+        if (!authors.contains(author)) {
+            authors.add(author);
+        }
+
+        if (author.getBooks() == null) {
+            author.setBooks(new HashSet<>());
+        }
+        if (!author.getBooks().contains(this)) {
+            author.getBooks().add(this);
+        }
+    }
+
+    public void removeAuthor(Author author) {
+        if (authors != null && authors.contains(author)) {
+            authors.remove(author);
+            author.getBooks().remove(this);
+        }
     }
 }

@@ -3,9 +3,15 @@ package com.aluracursos.literalura.menu;
 import com.aluracursos.literalura.api.BookApi;
 import com.aluracursos.literalura.model.Author;
 import com.aluracursos.literalura.model.Book;
+import com.aluracursos.literalura.repository.AuthorRepository;
+import com.aluracursos.literalura.repository.BookRepository;
+import com.aluracursos.literalura.services.AuthorService;
+import com.aluracursos.literalura.services.BookService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 public class ConsoleMenu {
@@ -13,6 +19,19 @@ public class ConsoleMenu {
     private final BookApi bookApi;
 
     private final List<Book> searchedBooks = new ArrayList<>();
+
+    @Autowired
+    private BookRepository bookRepository;
+
+    @Autowired
+    private AuthorRepository authorRepository;
+
+    @Autowired
+    private BookService bookService;
+
+    @Autowired
+    private AuthorService authorService;
+
 
     public ConsoleMenu(BookApi bookApi) {
         this.bookApi = bookApi;
@@ -40,108 +59,91 @@ public class ConsoleMenu {
 
             switch (option) {
                 case 1 -> searchBooks();
-                case 2 -> showSearchedBooks();
-                case 3 -> listAuthorsFromSearches();
-                case 4 -> listAuthorsAliveInPeriod();
-                case 5 -> listBooksByLanguage();
+                case 2 -> showSavedBooks();
+                case 3 -> showAllAuthors();
+                case 4 -> showBooksByAuthorsAliveInPeriod();
+                case 5 -> showBooksByLanguage();
                 case 0 -> System.out.println("👋 Saliendo de la aplicación.");
                 default -> System.out.println("❌ Opción no válida. Debes de ingresar un múmero de las opciones del menú");
             }
         }
     }
 
-    private void listBooksByLanguage() {
-        if (searchedBooks.isEmpty()){
-            System.out.println("⚠️ No hay libros buscados para filtrar por idioma.");
+    private void showBooksByLanguage() {
+        System.out.print("🌐 Ingresa el idioma (por ejemplo: 'en', 'es', 'fr'): ");
+        String language = scanner.nextLine().trim();
+
+        List<Book> books = bookService.getBooksByLanguageWithAuthors(language);
+
+        if (books.isEmpty()) {
+            System.out.println("❌ No se encontraron libros en el idioma '" + language + "'.");
             return;
         }
 
-        System.out.println("Ingrese el código del idioma (por ejemplo: en, es, fr): ");
-        String inputLang = scanner.nextLine().trim().toLowerCase();
+        System.out.println("📚 Libros en idioma '" + language + "':");
+        books.forEach(book -> {
+            String authors = book.getAuthors().stream()
+                    .map(Author::getName)
+                    .collect(Collectors.joining(", "));
+            System.out.println("• " + book.getTitle() + " - Autor(es): " + authors);
+        });
+    }
 
-        List<Book> filteredBooks = new ArrayList<>();
 
-        for (Book book : searchedBooks) {
-            if (book.getLanguages() != null && book.getLanguages().contains(inputLang)){
-                filteredBooks.add(book);
-            }
+    public void showBooksByAuthorsAliveInPeriod() {
+        System.out.print("🔢 Año de inicio: ");
+        int startYear = Integer.parseInt(scanner.nextLine().trim());
+
+        System.out.print("🔢 Año de fin: ");
+        int endYear = Integer.parseInt(scanner.nextLine().trim());
+
+        List<Author> authors = authorRepository.findAuthorsAliveBetween(startYear, endYear);
+
+        if (authors.isEmpty()) {
+            System.out.println("❌ No se encontraron autores vivos en ese período.");
+            return;
         }
 
-        if (filteredBooks.isEmpty()){
-            System.out.println("❌ No se encontraron libros en el idioma '" + inputLang + "'.");
+        Set<Book> books = new HashSet<>();
+        for (Author author : authors) {
+            books.addAll(author.getBooks());
+        }
+
+        if (books.isEmpty()) {
+            System.out.println("ℹ️ No se encontraron libros de esos autores.");
         } else {
-            System.out.println("📚 Libros en idioma '" + inputLang + "':");
-            for (Book book : filteredBooks) {
-                System.out.println("🔹 " + book.getTitle());
-            }
+            System.out.println("📚 Libros de autores vivos entre " + startYear + " y " + endYear + ":");
+            books.forEach(book -> {
+                System.out.println("📖 " + book.getTitle() + " | 📥 " + book.getDownloadCount() +
+                        " descargas | 🌐 Idiomas: " + String.join(", ", book.getLanguages()));
+            });
         }
     }
 
-    private void listAuthorsAliveInPeriod() {
-        if (searchedBooks.isEmpty()) {
-            System.out.println("⚠️ No hay libros buscados para analizar autores.");
-            return;
-        }
 
-        try {
-            System.out.print("Ingrese el año de inicio: ");
-            int startYear = Integer.parseInt(scanner.nextLine());
-
-            System.out.print("Ingrese el año de fin: ");
-            int endYear = Integer.parseInt(scanner.nextLine());
-
-            Set<String> authorsAlive = new TreeSet<>();
-
-            for (Book book : searchedBooks) {
-                for (Author author : book.getAuthors()) {
-                    Integer birth = author.getBirth_year();
-                    Integer death = author.getDeath_year();
-
-                    // Consideramos autores que estaban vivos en algún punto del rango
-                    boolean wasAliveInPeriod = (birth != null && birth <= endYear) &&
-                            (death == null || death >= startYear);
-
-                    if (wasAliveInPeriod) {
-                        authorsAlive.add(author.getName() + " (" + birth + " - " + (death != null ? death : "¿vivo?") + ")");
-                    }
-                }
-            }
-
-            if (authorsAlive.isEmpty()) {
-                System.out.println("❌ No se encontraron autores vivos en ese período.");
-            } else {
-                System.out.println("✅ Autores vivos entre " + startYear + " y " + endYear + ":");
-                authorsAlive.forEach(System.out::println);
-            }
-
-        } catch (NumberFormatException e) {
-            System.out.println("❌ Entrada inválida. Por favor ingrese números válidos.");
-        }
-    }
-
-    private void searchBooks() {
+    public void searchBooks() {
         System.out.print("🔍 Ingresa el nombre del libro o autor a buscar: ");
         String search = scanner.nextLine().trim();
 
-        List<Book> books = bookApi.searchBooks(search);
+        List<Book> savedBooks = bookService.searchAndSaveBooks(search); // Llama al servicio
 
-        if (books.isEmpty()) {
+        if (savedBooks.isEmpty()) {
             System.out.println("❌ No se encontraron libros para esa búsqueda.");
             return;
         }
 
         int addedCount = 0;
 
-        for (Book book : books) {
-            boolean alreadyExists = searchedBooks.stream()
-                    .anyMatch(b -> b.getTitle().trim().equalsIgnoreCase(book.getTitle().trim()));
+        for (Book book : savedBooks) {
+            boolean alreadyInMemory = searchedBooks.stream()
+                    .anyMatch(b -> b.getTitle().equalsIgnoreCase(book.getTitle()));
 
-            if (!alreadyExists) {
+            if (!alreadyInMemory) {
                 searchedBooks.add(book);
-                System.out.println("✅ Libro agregado: " + book.getTitle());
+                System.out.println("✅ Libro agregado y guardado: " + book.getTitle());
                 addedCount++;
             } else {
-                System.out.println("⚠️ El libro '" + book.getTitle() + "' ya está registrado. No se añadió de nuevo.");
+                System.out.println("⚠️ El libro '" + book.getTitle() + "' ya está en la lista temporal.");
             }
         }
 
@@ -151,43 +153,52 @@ public class ConsoleMenu {
     }
 
 
-    private void showSearchedBooks(){
-        if (searchedBooks.isEmpty()) {
-            System.out.println("⚠️ No hay libros guardados de búsquedas anteriores.");
-        } else {
-            System.out.println("📚 Libros buscados anteriormente:");
-            for (Book book : searchedBooks) {
-                System.out.println("📘 Título: " + book.getTitle());
-                System.out.println("👤 Autor(es): " + book.getAuthors());
-                System.out.println("🌐 Idioma(s): " + book.getLanguages());
-                System.out.println("⬇️ Descargas: " + book.getDownloadCount());
-                System.out.println("-------------------------------");
-            }
-        }
-    }
 
-    public void listAuthorsFromSearches() {
-        if (searchedBooks.isEmpty()){
-            System.out.println("⚠\uFE0F No hay libros registrados para mostrar autores.");
+
+
+
+
+    public void showSavedBooks() {
+        List<Book> savedBooks = bookService.findAllBooksFullyLoaded();
+
+        if (savedBooks.isEmpty()) {
+            System.out.println("ℹ️ No hay libros guardados en la base de datos.");
             return;
         }
 
-        Set<String> authorsSet = new TreeSet<>(); //TreeSet para ordenar alfabeticamente y eliminar duplicados
+        for (Book book : savedBooks) {
+            System.out.println("- " + book.getTitle() + " | Descargas: " + book.getDownloadCount());
 
-        for (Book book : searchedBooks) {
-            List<Author> authors = book.getAuthors();
-            for (Author author : authors) {
-                authorsSet.add(author.getName());
+            if (book.getAuthors() != null && !book.getAuthors().isEmpty()) {
+                String authorsNames = book.getAuthors().stream()
+                        .map(Author::getName)
+                        .collect(Collectors.joining(", "));
+                System.out.println("  Autores: " + authorsNames);
             }
-        }
 
-        if (authorsSet.isEmpty()) {
-            System.out.println("⚠️ No se encontraron autores en los libros buscados.");
-        } else {
-            System.out.println("🖋️ Autores registrados en las búsquedas:");
-            for (String author : authorsSet) {
-                System.out.println("👤 " + author);
+            if (book.getLanguages() != null && !book.getLanguages().isEmpty()) {
+                String languages = String.join(", ", book.getLanguages());
+                System.out.println("  Idiomas: " + languages);
             }
         }
     }
+
+
+    public void showAllAuthors() {
+        List<Author> authors = authorService.getAllAuthors();
+
+        if (authors.isEmpty()) {
+            System.out.println("No hay autores registrados.");
+            return;
+        }
+
+        System.out.println("Listado de autores registrados:");
+        for (Author author : authors) {
+            System.out.printf("- %s (Nacimiento: %d, Fallecimiento: %d)\n",
+                    author.getName(),
+                    author.getBirthYear() != null ? author.getBirthYear() : 0,
+                    author.getDeathYear() != null ? author.getDeathYear() : 0);
+        }
+    }
+
 }

@@ -1,37 +1,73 @@
 package com.aluracursos.literalura.model;
 
-public class Author {
-    private String name;
-    private int birth_year;
-    private int death_year;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.persistence.*;
+import java.util.HashSet;
+import java.util.Set;
 
-    // Getters y Setters
+@JsonIgnoreProperties(ignoreUnknown = true)
+@Entity
+@Table(name = "authors")
+public class Author {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name;
+
+    @JsonProperty("birth_year")
+    @Column(name = "birth_year")
+    private Integer birthYear;
+
+    @JsonProperty("death_year")
+    @Column(name = "death_year")
+    private Integer deathYear;
+
+    @ManyToMany(mappedBy = "authors", fetch = FetchType.LAZY)
+    private Set<Book> books = new HashSet<>();
+
+    public Author() {}
+
+    // Getters y setters
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
     public String getName() {
         return name;
-    }
-
-    public int getBirth_year() {
-        return birth_year;
-    }
-
-    public int getDeath_year() {
-        return death_year;
     }
 
     public void setName(String name) {
         this.name = name;
     }
 
-    public void setBirth_year(int birth_year) {
-        this.birth_year = birth_year;
+    public Integer getBirthYear() {
+        return birthYear;
     }
 
-    public void setDeath_year(int death_year) {
-        this.death_year = death_year;
+    public void setBirthYear(Integer birthYear) {
+        this.birthYear = birthYear;
     }
 
-    @Override
-    public String toString() {
-        return name + " (" + birth_year + " - " + death_year + ")";
+    public Integer getDeathYear() {
+        return deathYear;
+    }
+
+    public void setDeathYear(Integer deathYear) {
+        this.deathYear = deathYear;
+    }
+
+    public Set<Book> getBooks() {
+        return books;
+    }
+
+    public void setBooks(Set<Book> books) {
+        this.books = books;
     }
 }
